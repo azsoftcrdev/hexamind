@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+# En Jetson/RPi recomiendo instalar OpenCV del sistema con apt:
+# sudo apt install -y python3-opencv
+# Si NO puedes, entonces descomenta la línea siguiente:
+# opencv-python-headless

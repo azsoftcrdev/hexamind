@@ -1,0 +1,9 @@
+# Python / entorno
+.venv/
+__pycache__/
+*.pyc
+
+# Config local
+.env
+config/*.env
+logs/
