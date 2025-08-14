@@ -1,12 +1,12 @@
 # app/streaming.py
 import cv2, numpy as np, time
-from .camera import camera
-from .detections import ColorRecognizer
-from .detections.face_recognition import FaceDetector   # ⬅️ nuevo
+from .sensors.camera import camera
+from .IA import ColorRecognizer
+from .IA.face_recognition import FaceDetector 
 
 BOUNDARY = b"--frame"
 _recog = ColorRecognizer()
-_face = FaceDetector()                                   # ⬅️ nuevo
+_face = FaceDetector()                                
 
 def mjpeg_generator(mode: str | None = None,
                     color: str | None = None,
@@ -15,7 +15,6 @@ def mjpeg_generator(mode: str | None = None,
 
     if mode == "color":
         _recog.set_current_color(color)
-    # para "face" no hace falta setear nada
 
     while True:
         try:
