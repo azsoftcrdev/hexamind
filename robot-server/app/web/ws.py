@@ -1,49 +1,75 @@
-# app/web/ws.py
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import asyncio
+import asyncio, time
 from ..core.bus import Bus
+from ..core.settings import WS_RATE_HZ
 
 ws_app = FastAPI()
-BUS: Bus | None = None
-
-@ws_app.on_event("startup")
-async def _ws_startup():
-    if BUS is None:
-        print("[WS] Bus no inyectado aún (main debe asignarlo)")
+BUS: Bus | None = None  # inyectado en main.py
 
 @ws_app.websocket("/")
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()
-    sub = BUS.subscribe(["telemetry", "alert"]) if BUS else None
+    if BUS is None:
+        await ws.close()
+        return
+
+    sub = BUS.subscribe(["telemetry", "alert", "mode"])  # agrega más temas si quieres
+    send_interval = 1.0 / max(WS_RATE_HZ, 0.1)           # periodo mínimo entre envíos
+    last_send = 0.0
+
+    # buffers “coalesced”: guardamos solo el último por tema
+    last_msgs = {}
+
     try:
         while True:
-            # recibir (control remoto, etc.)
+            # Recibir comandos sin bloquear (timeout corto)
             recv_task = asyncio.create_task(ws.receive_json())
-            # publicar desde el bus
-            bus_task = asyncio.create_task(sub.get()) if sub else None
+            bus_task  = asyncio.create_task(sub.get())
 
             done, pending = await asyncio.wait(
-                {t for t in [recv_task, bus_task] if t},
-                return_when=asyncio.FIRST_COMPLETED,
-                timeout=1.0
+                {recv_task, bus_task}, return_when=asyncio.FIRST_COMPLETED, timeout=send_interval
             )
 
+            now = time.time()
+
+            # Manejar lo recibido del cliente (p.ej. manual_cmd)
             if recv_task in done:
                 try:
                     msg = recv_task.result()
-                    if BUS and "topic" in msg:
-                        await BUS.publish(msg["topic"], msg.get("data"))
+                    topic = msg.get("topic")
+                    data  = msg.get("data")
+                    if topic and data is not None:
+                        await BUS.publish(topic, data)
                 except Exception:
                     pass
 
-            if bus_task and (bus_task in done):
-                topic, data = bus_task.result()
-                await ws.send_json({"topic": topic, "data": data})
+            # Capturar el último mensaje del bus (coalescing)
+            if bus_task in done:
+                try:
+                    topic, data = bus_task.result()
+                    last_msgs[topic] = data  # guardamos solo el más reciente por tópico
+                except Exception:
+                    pass
 
-            for p in pending:
+            # Throttle: solo enviar si pasó el intervalo
+            if now - last_send >= send_interval and last_msgs:
+                # backpressure: si el cliente está saturado, saltamos envío
+                # (en navegador puedes revisar ws.bufferedAmount con JS; en server no)
+                try:
+                    # enviamos todos los últimos “coalesced” acumulados desde el último tick
+                    for topic, data in list(last_msgs.items()):
+                        await ws.send_json({"topic": topic, "data": data})
+                    last_msgs.clear()
+                    last_send = now
+                except Exception:
+                    # si falla (cliente desconectado), salimos
+                    break
+
+            # cancelar pendientes para evitar fugas
+            for p in pending: 
                 p.cancel()
+
     except WebSocketDisconnect:
         pass
     finally:
-        if sub:
-            sub.close()
+        sub.close()

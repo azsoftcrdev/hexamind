@@ -38,4 +38,9 @@ def stream_mjpg(
         except Exception:
             pass
 
-    return StreamingResponse(_stream(), media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(gen, media_type="multipart/x-mixed-replace; boundary=frame")
+
+
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import StreamingResponse
+from ..streaming import mjpeg_generator

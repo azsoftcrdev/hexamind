@@ -23,20 +23,19 @@ class Subscriber:
                 pass
 
 class Bus:
-    def __init__(self):
-        self._topics: Dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
-        self._last: Dict[str, Any] = {}
-
-    async def publish(self, topic: str, data: Any):
+    def __init__(self, maxsize:int=100):
+        self._topics = defaultdict(lambda: asyncio.Queue(maxsize=maxsize))
+        self._last = {}
+    async def publish(self, topic, data):
         self._last[topic] = data
-        await self._topics[topic].put((topic, data))
-
-    def subscribe(self, topics: Iterable[str]) -> Subscriber:
-        queues = [self._topics[t] for t in topics]
-        return Subscriber(queues)
-
-    async def last(self, topic: str) -> Any:
-        return self._last.get(topic)
+        q = self._topics[topic]
+        # si la cola está llena, descarta el más antiguo (coalescing tipo drop-oldest)
+        if q.full():
+            try:
+                q.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        await q.put((topic, data))
 
 # Utilidad: “topic cache” seguro con defecto
 async def last_or(bus: Bus, topic: str, default: Any):

@@ -17,7 +17,7 @@ def _parse_device(dev: str) -> Union[int, str]:
 
 class Camera:
     def __init__(self):
-        self.device = _parse_device(os.getenv("CAMERA_DEVICE", "0"))
+        self.device = 0#_parse_device(os.getenv("CAMERA_DEVICE", "0"))
         self.width  = int(os.getenv("CAMERA_WIDTH", "640"))
         self.height = int(os.getenv("CAMERA_HEIGHT", "480"))
         self.fps    = int(os.getenv("CAMERA_FPS", "30"))
