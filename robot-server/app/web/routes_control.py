@@ -2,14 +2,15 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from ..streaming import mjpeg_generator 
+from typing import Optional
 
 router = APIRouter()
 
 @router.get("/stream.mjpg")
 def stream_mjpg(
     request: Request,
-    mode: str | None = None,
-    color: str | None = None,
+    mode: Optional[str] = None,
+    color: Optional[str] = None,
     overlay: bool = True,
     quality: int = 80
 ):

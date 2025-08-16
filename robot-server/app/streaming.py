@@ -3,13 +3,14 @@ import cv2, numpy as np, time
 from .sensors.camera import camera
 from .IA import ColorRecognizer
 from .IA.face_recognition import FaceDetector 
+from typing import Optional
 
 BOUNDARY = b"--frame"
 _recog = ColorRecognizer()
 _face = FaceDetector()                                
 
-def mjpeg_generator(mode: str | None = None,
-                    color: str | None = None,
+def mjpeg_generator(mode: Optional[str] = None,
+                    color: Optional[str] = None,
                     overlay: bool = True,
                     quality: int = 80):
 

@@ -2,9 +2,12 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import asyncio, time
 from ..core.bus import Bus
 from ..core.settings import WS_RATE_HZ
+from typing import Optional
 
 ws_app = FastAPI()
-BUS: Bus | None = None  # inyectado en main.py
+
+BUS: Optional[Bus] = None
+
 
 @ws_app.websocket("/")
 async def ws_endpoint(ws: WebSocket):

@@ -3,8 +3,11 @@ import time
 from fastapi import APIRouter, Response
 from ..core.bus import Bus, last_or
 from ..sensors.camera import camera, get_telemetry_snapshot  # ajusta import si no moviste
+from typing import Optional
 router = APIRouter()
-BUS: Bus | None = None
+
+BUS: Optional[Bus] = None
+
 T0 = time.time()
 
 @router.get("/health")
