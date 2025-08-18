@@ -7,11 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.bus import Bus
 from .core.settings import HTTP_PORT
 from .core.alerts import alerts_loop
-from .sensors.camera import camera, get_telemetry_snapshot  # ajusta import si no moviste
+from .sensors.camera import camera, get_telemetry_snapshot  
 from .web.routes_stream import router as stream_router
 from .web.routes_status import router as status_router
 from .web.routes_control import router as control_router
 from .web import ws as ws_module
+from .motion.controller_vel import MotionControllerVel
 
 bus = Bus()
 t0 = time.time()
@@ -24,6 +25,10 @@ async def telemetry_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    
+    motion_controller = MotionControllerVel(hz=15.0, deadman_s=0.8)
+    motion_controller.start(asyncio.get_event_loop())
+    
     ws_module.BUS = bus
     from .web import routes_status, routes_control
     routes_status.BUS = bus
